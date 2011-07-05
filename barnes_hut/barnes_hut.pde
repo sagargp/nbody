@@ -1,26 +1,20 @@
-double G = 6.67e-11;
-double S = 3e4; // "softening parameter"
+double G = 1e-5;
+double S = 3e2; // "softening parameter"
 int L = 500; // length of the simulation (always square)
 
-BHNode root;
-ArrayList particles;
+NBody nbody;
 
 void setup() {
 	size(L, L);
 	colorMode(RGB, 255, 255, 255, 100);
 	smooth();
 	
-	particles = new ArrayList();
-	root = new BHNode(new Quadrant(new PVector(0, 0), L));
-	
-	// add 100 particles to the BH Tree
-	for (int i = 0; i < 1000; i++) {
-		Particle p = new Particle(random(1e3, 1e5), new PVector(random(L), random(L)), new PVector(0, 0, 0));
-		particles.add(p);
-	}
-	
-	for (int i = 0; i < particles.size(); i++)
-		root.insert((Particle)particles.get(i));
+	nbody = new NBody();
+}
+
+void draw() {
+	background(0);
+	nbody.run();
 }
 
 void drawQuadrants(BHNode node) {
@@ -34,17 +28,37 @@ void drawQuadrants(BHNode node) {
 	}
 }
 
-void draw() {
-	background(0);
-
-	for (int i = 0; i < particles.size(); i++) {
-		Particle p = (Particle)particles.get(i);
-		p.render();
+class NBody {
+	ArrayList particles = new ArrayList();
+	BHNode root;
+	
+	NBody() {
+		for (int i = 0; i < 100; i++) {
+			Particle p = new Particle(random(1e3, 1e5), new PVector(random(L), random(L)), new PVector(0, 0, 0));
+			particles.add(p);
+		}
+		
+		Particle star = new Particle(1e5, new PVector(L/2, L/2), new PVector(0, 0));
+		particles.add(star);
 	}
 	
-	noFill();
-	stroke(255, 100);
-	drawQuadrants(root);
+	void run() {
+		root = new BHNode(new Quadrant(new PVector(0, 0), L));
+		
+		for (int i = 0; i < particles.size(); i++) {
+			Particle p = (Particle)particles.get(i);
+			p.resetForces();
+			root.insert(p);
+		}
+		
+		for (int i = 0; i < particles.size(); i++) {
+			Particle p = (Particle)particles.get(i);
+			
+			root.updateForce(p);
+			p.update();
+			p.render();
+		}
+	}
 }
 
 class Quadrant {
@@ -102,7 +116,7 @@ class BHNode {
 	BHNode(Quadrant q) {
 		this.quad = q;
 	}
-	
+
 	void insert(Particle p) {
 		if (NW == null && particle == null && quad.contains(p)) {
 			particle = p;
@@ -138,8 +152,25 @@ class BHNode {
 	}
 	
 	void updateForce(Particle p) {
+		if (this.particle == null)
+			return;
+		
+		if (NW == null) { // check if this is a leaf node
+			p.addForce(this.particle);
+		} else {
+			double s = this.quad.length;
+			double d = this.particle.distanceTo(p);
+			
+			if (s/d < 0.5) {
+				p.addForce(this.particle);
+			} else {
+				NW.updateForce(p);
+				NE.updateForce(p);
+				SW.updateForce(p);
+				SE.updateForce(p);
+			}
+		}
 	}
-	
 }
 
 class Particle {
@@ -152,6 +183,11 @@ class Particle {
 		this.mass = mass;
 		this.position = position;
 		this.velocity = initial_velocity;
+        this.force = new PVector(0, 0);
+	}
+	
+	void resetForces() {
+		this.force = new PVector(0, 0);
 	}
 	
 	// add this particle to another one and return a new particle
@@ -179,7 +215,7 @@ class Particle {
 	// calculate the effect of the forces from p on this particle
 	void addForce(Particle p) {
 		PVector direction = PVector.sub(p.position, this.position);
-		direction.normalize();
+		//direction.normalize();
 		double f = G * p.mass * this.mass / ( sq((float)this.distanceTo(p)) + sq((float)S) );
 		PVector force = PVector.mult(direction, (float)f);
 		this.force.add(force);
