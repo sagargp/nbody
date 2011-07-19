@@ -1,6 +1,7 @@
 double G = 1e-5;
 double S = 3e2; // "softening parameter"
-int L = 500; // length of the simulation (always square)
+int L = 1000; // length of the simulation (always square)
+boolean drawQuads = false;
 
 NBody nbody;
 
@@ -33,8 +34,9 @@ class NBody {
 	BHNode root;
 	
 	NBody() {
-		for (int i = 0; i < 100; i++) {
-			Particle p = new Particle(random(1e3, 1e5), new PVector(random(L), random(L)), new PVector(0, 0, 0));
+		for (int i = 0; i < 1000; i++) {
+			//Particle p = new Particle(random(1e3, 1e5), new PVector(480 + random(40), 480 + random(40)), new PVector(-5 + random(10), -5 + random(10), 0));
+                        Particle p = new Particle(random(1e3, 1e5), new PVector(random(L), random(L)), new PVector(0, 0));
 			particles.add(p);
 		}
 		
@@ -58,6 +60,12 @@ class NBody {
 			p.update();
 			p.render();
 		}
+
+                if (drawQuads) {
+                  fill(100, 0);
+                  stroke(100, 50);
+                  drawQuadrants(root);
+                }
 	}
 }
 
