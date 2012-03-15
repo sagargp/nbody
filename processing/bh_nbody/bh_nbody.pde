@@ -1,3 +1,7 @@
+import controlP5.*;
+
+ControlP5 controlP5;
+
 // ### parameters
 int size             = 800;
 int fps              = 30;
@@ -9,10 +13,25 @@ boolean showQuads    = false;
 
 // ###
 ArrayList<Particle> particles = new ArrayList<Particle>(num);
-float sum = 0.0;
+float lastTime = 0.0;
+boolean useFast = true;
 
 void setup()
 {
+  controlP5 = new ControlP5(this);
+
+  Radio algorithmSelection = controlP5.addRadio("algorithm", 3, 45);
+  algorithmSelection.addItem("Slow", 0);
+  algorithmSelection.addItem("Fast", 1);
+
+  CheckBox quads = controlP5.addCheckBox("quads", 3, 75);
+  quads.addItem("show quads", 0);
+  
+  controlP5.addSlider("gravity",   0.0, 10.0, 1.0, 3, 100, 200, 20);
+  controlP5.addSlider("threshold", 0.0, 20.0, 0.5, 3, 125, 200, 20);
+  controlP5.addButton("clear", 0, 3, 150, 35, 20);
+
+
   size(size, size);
   noStroke();
   frameRate(fps);
@@ -39,27 +58,56 @@ void setup()
   }
 }
 
+public void controlEvent(ControlEvent event)
+{
+  if (event.isGroup())
+    showQuads = (event.group().arrayValue()[0] == 1.0);
+}
+
+public void clear(int value)
+{
+  particles.clear();
+}
+
+public void algorithm(int which)
+{
+  useFast = which == 1;
+}
+
+public void gravity(float value)
+{
+  G = value;
+}
+
+public void threshold(float value)
+{
+  this.threshold = value;
+}
+
 void mouseClicked()
 {
-  for (int i = 0; i < 500; i++)
+  if (mouseEvent.getClickCount() == 2)
   {
-    float theta = random(0, 6.283184);
-    float cosine = cos(theta);
-    float sine = sin(theta);
+    for (int i = 0; i < 500; i++)
+    {
+      float theta = random(0, 6.283184);
+      float cosine = cos(theta);
+      float sine = sin(theta);
 
-    PVector position = new PVector(mouseX, mouseY);
-    PVector displace = new PVector(cosine, sine); // randomly rotated unit vector
-    displace.mult(random(1, 80));
-    position.add(displace);
+      PVector position = new PVector(mouseX, mouseY);
+      PVector displace = new PVector(cosine, sine); // randomly rotated unit vector
+      displace.mult(random(1, 80));
+      position.add(displace);
 
-    Particle p = new Particle(0.0, new int[]{0, 0, 0}, null, null);
-    p.itsPos   = position; 
-    p.itsVel   = new PVector(0, 0);
+      Particle p = new Particle(0.0, new int[]{0, 0, 0}, null, null);
+      p.itsPos   = position; 
+      p.itsVel   = new PVector(0, 0);
 
-    p.itsMass  = random(1, 5);
-    p.itsColor = new int[]{int(random(180, 255)), int(random(180, 255)), int(random(180, 255))};
+      p.itsMass  = random(1, 5);
+      p.itsColor = new int[]{int(random(180, 255)), int(random(180, 255)), int(random(180, 255))};
 
-    particles.add(p);
+      particles.add(p);
+    }
   }
 }
 
@@ -67,12 +115,17 @@ void draw()
 {
   background(0);
   float start = millis();
-  drawFast();
-  sum += (millis() - start);
-  float avg = sum / frameCount;
+  if (useFast)
+    drawFast();
+  else
+    drawSlow();
+  float diff = millis() - start;
+  float avg = (lastTime + diff)/2;
+  lastTime = diff;
 
+  fill(255);
   text("Particle count: " + particles.size(), 3, 15);
-  text("Average frame time: " + int(avg) + " ms", 3, 30);
+  text("Run time: " + int(avg) + " ms", 3, 30);
 }
 
 void drawFast()
