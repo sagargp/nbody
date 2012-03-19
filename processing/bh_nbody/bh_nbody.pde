@@ -6,7 +6,7 @@ ControlP5 controlP5;
 int size             = 800;
 int fps              = 30;
 
-int num              = 9000; 
+int num              = 15000; 
 float G              = 1.0;
 float threshold      = 2.0; // lower is slower and closer to the O(n), higher is faster but less accurate
 boolean showQuads    = false;
@@ -53,37 +53,11 @@ void setup()
 
     p.itsPos         = position; 
     p.itsVel         = new PVector(0, 0);
-    p.itsMass        = random(-1, 1);
+    p.itsMass        = random(1, 2);
     p.itsColor       = new int[]{int(random(180, 255)), int(random(180, 255)), int(random(180, 255))};
 
     particles.add(p);
   }
-}
-
-public void controlEvent(ControlEvent event)
-{
-  if (event.isGroup())
-    showQuads = (event.group().arrayValue()[0] == 1.0);
-}
-
-public void clear(int value)
-{
-  particles.clear();
-}
-
-public void algorithm(int which)
-{
-  useFast = which == 1;
-}
-
-public void gravity(float value)
-{
-  G = value;
-}
-
-public void threshold(float value)
-{
-  this.threshold = value;
 }
 
 void mouseClicked()
@@ -105,7 +79,7 @@ void mouseClicked()
       p.itsPos   = position; 
       p.itsVel   = new PVector(0, 0);
 
-      p.itsMass  = random(-1, 1);
+      p.itsMass  = random(1, 2);
       p.itsColor = new int[]{int(random(100, 255)), int(random(100, 255)), int(random(100, 255))};
 
       particles.add(p);
@@ -206,6 +180,34 @@ void drawQuad(QNode which)
     drawQuad(which.se);
   }
 }
+
+/* controlp5 callbacks */
+public void controlEvent(ControlEvent event)
+{
+  if (event.isGroup())
+    showQuads = (event.group().arrayValue()[0] == 1.0);
+}
+
+public void clear(int value)
+{
+  particles.clear();
+}
+
+public void algorithm(int which)
+{
+  useFast = which == 1;
+}
+
+public void gravity(float value)
+{
+  G = value;
+}
+
+public void threshold(float value)
+{
+  this.threshold = value;
+}
+
 
 /*********************************************************
  ************************         ************************
