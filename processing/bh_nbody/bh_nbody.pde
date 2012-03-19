@@ -6,9 +6,9 @@ ControlP5 controlP5;
 int size             = 800;
 int fps              = 30;
 
-int num              = 1000; 
+int num              = 9000; 
 float G              = 1.0;
-float threshold      = 0.5; // lower is slower and closer to the O(n), higher is faster but less accurate
+float threshold      = 2.0; // lower is slower and closer to the O(n), higher is faster but less accurate
 boolean showQuads    = false;
 
 // ###
@@ -23,6 +23,7 @@ void setup()
   Radio algorithmSelection = controlP5.addRadio("algorithm", 3, 45);
   algorithmSelection.addItem("Slow", 0);
   algorithmSelection.addItem("Fast", 1);
+  algorithmSelection.activate("Fast");
 
   CheckBox quads = controlP5.addCheckBox("quads", 3, 75);
   quads.addItem("show quads", 0);
@@ -36,23 +37,24 @@ void setup()
   noStroke();
   frameRate(fps);
 
-  for (int i = 0; i < num; i++)
+  int i;
+  for (i = 0; i < num; i++)
   {
-    float theta = random(0, 6.283184);
-    float cosine = cos(theta);
-    float sine = sin(theta);
+    float theta      = random(0, 6.283184);
+    float cosine     = cos(theta);
+    float sine       = sin(theta);
+
+    Particle p       = new Particle(0.0, new int[]{0, 0, 0}, null, null);
 
     PVector position = new PVector(size/2, size/2);
     PVector displace = new PVector(cosine, sine); // randomly rotated unit vector
     displace.mult(random(0, size/2));
     position.add(displace);
 
-    Particle p = new Particle(0.0, new int[]{0, 0, 0}, null, null);
-    p.itsPos   = position; 
-    p.itsVel   = new PVector(0, 0);
-
-    p.itsMass  = random(1, 5);
-    p.itsColor = new int[]{int(random(180, 255)), int(random(180, 255)), int(random(180, 255))};
+    p.itsPos         = position; 
+    p.itsVel         = new PVector(0, 0);
+    p.itsMass        = random(-1, 1);
+    p.itsColor       = new int[]{int(random(180, 255)), int(random(180, 255)), int(random(180, 255))};
 
     particles.add(p);
   }
@@ -88,7 +90,7 @@ void mouseClicked()
 {
   if (mouseEvent.getClickCount() == 2)
   {
-    for (int i = 0; i < 500; i++)
+    for (int i = 0; i < 1000; i++)
     {
       float theta = random(0, 6.283184);
       float cosine = cos(theta);
@@ -103,8 +105,8 @@ void mouseClicked()
       p.itsPos   = position; 
       p.itsVel   = new PVector(0, 0);
 
-      p.itsMass  = random(1, 5);
-      p.itsColor = new int[]{int(random(180, 255)), int(random(180, 255)), int(random(180, 255))};
+      p.itsMass  = random(-1, 1);
+      p.itsColor = new int[]{int(random(100, 255)), int(random(100, 255)), int(random(100, 255))};
 
       particles.add(p);
     }
@@ -125,7 +127,7 @@ void draw()
 
   fill(255);
   text("Particle count: " + particles.size(), 3, 15);
-  text("Run time: " + int(avg) + " ms", 3, 30);
+  text("Frame time: " + int(avg) + " ms", 3, 30);
 }
 
 void drawFast()
@@ -138,7 +140,12 @@ void drawFast()
     root.insert(p);
 
     // draw the particle
-    set((int)p.itsPos.x, (int)p.itsPos.y, color(p.itsColor[0], p.itsColor[1], p.itsColor[2]));
+    float mag = p.itsVel.mag();
+    set((int)p.itsPos.x, (int)p.itsPos.y, color(
+      mag/9*p.itsColor[0],
+      mag/9*p.itsColor[1],
+      mag/9*p.itsColor[2])
+    );
   }
 
   if (showQuads)
@@ -152,7 +159,6 @@ void drawFast()
   {
     root.updateForces(p);
     p.move();
-    //p.clamp(0, size);
   }
 }
 
@@ -182,10 +188,6 @@ void drawSlow()
       p.itsVel.add(v); 
     }
 
-    // make sure we don't go outside the window boundaries 
-    //p.itsPos.x = constrain(p.itsPos.x, p.itsSize/2, size-p.itsSize/2);
-    //p.itsPos.y = constrain(p.itsPos.y, p.itsSize/2, size-p.itsSize/2);
-
     p.move();
 
     set((int)p.itsPos.x, (int)p.itsPos.y, color(p.itsColor[0], p.itsColor[1], p.itsColor[2]));
@@ -210,6 +212,31 @@ void drawQuad(QNode which)
  ***********************  Classes  ***********************
  ************************         ************************
  *********************************************************/
+
+class UpdateThread extends Thread
+{
+  QNode node;
+  ArrayList<Particle> particles;
+  int start, end;
+
+  UpdateThread(QNode node, ArrayList<Particle> p, int start, int end)
+  {
+    this.node = node;
+    this.particles = p;
+    this.start = start;
+    this.end = end;
+  }
+
+  void run()
+  {
+    for (int i = start; i < end; i++)
+    {
+      Particle particle = particles.get(i);
+      node.updateForces(particle);
+      particle.move();
+    }
+  }
+}
 
 class QNode
 {
