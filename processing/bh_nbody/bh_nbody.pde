@@ -32,7 +32,6 @@ void setup()
   controlP5.addSlider("threshold", 0.0, 20.0, 0.5, 3, 125, 200, 20);
   controlP5.addButton("clear", 0, 3, 150, 35, 20);
 
-
   size(size, size);
   noStroke();
   frameRate(fps);
@@ -129,11 +128,20 @@ void drawFast()
     drawQuad(root);
   }
 
-  for (Particle p : particles)
-  {
-    root.updateForces(p);
-    p.move();
-  }
+  UpdateThread(root, particles, 0*num/8, 1*num/8).start();
+  UpdateThread(root, particles, 1*num/8, 2*num/8).start();
+  UpdateThread(root, particles, 2*num/8, 3*num/8).start();
+  UpdateThread(root, particles, 3*num/8, 4*num/8).start();
+  UpdateThread(root, particles, 4*num/8, 5*num/8).start();
+  UpdateThread(root, particles, 5*num/8, 6*num/8).start();
+  UpdateThread(root, particles, 6*num/8, 7*num/8).start();
+  UpdateThread(root, particles, 7*num/8, 8*num/8).start();
+
+  //for (Particle p : particles)
+  //{
+  //  root.updateForces(p);
+  //  p.move();
+  //}
 }
 
 void drawSlow()
