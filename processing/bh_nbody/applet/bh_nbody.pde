@@ -40,8 +40,8 @@ void setup()
   addParticles(
     num, // how many
     new PVector(840, 450), // where
-    size/2, // spread
-    0 // tangential velocity
+    10, // spread
+    10 // tangential velocity
   );
 }
 
@@ -49,10 +49,10 @@ void mouseClicked()
 {
   if (mouseEvent.getClickCount() == 2)
     addParticles(
-      1000, // how many
+      10000, // how many
       new PVector(mouseX, mouseY), // where
-      80, // spread
-      2 // tangential velocity
+      10, // spread
+      10 // tangential velocity
     );
 }
 
@@ -81,9 +81,6 @@ void drawFast()
   for (Particle p : particles)
   {
     // insert the particle into the quad tree
-    if (!root.contains(p))
-      continue;
-
     root.insert(p);
 
     // draw the particle
@@ -172,7 +169,7 @@ void addParticles(int howMany, PVector where, float spread, float tangentialVelo
     displace.mult(random(0, spread));
     position.add(displace);
 
-    particles.add(new Particle(random(-1, 2), rand, position, velocity));
+    particles.add(new Particle(mass, rand, position, velocity));
   }
 }
 
