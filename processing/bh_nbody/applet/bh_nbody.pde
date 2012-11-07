@@ -5,11 +5,14 @@ ControlP5 controlP5;
 // ### parameters
 int size             = 1000;
 int fps              = 30;
-int num              = 15000; 
+int num              = 0; 
 float G              = 0.5;
 float threshold      = 2.0; // lower is slower and closer to the O(n), higher is faster but less accurate
+float brightness     = 2.0; // lower is dimmer
+
+boolean initialSpin  = false;
 boolean showQuads    = false;
-boolean running      = false;
+boolean running      = true;
 
 // ###
 ArrayList<Particle> particles = new ArrayList<Particle>(num);
@@ -20,7 +23,7 @@ void setup()
 {
   controlP5 = new ControlP5(this);
 
-  Radio algorithmSelection = controlP5.addRadio("algorithm", 3, 45);
+  RadioButton algorithmSelection = controlP5.addRadio("algorithm", 3, 45);
   algorithmSelection.addItem("Slow", 0);
   algorithmSelection.addItem("Fast", 1);
   algorithmSelection.activate("Fast");
@@ -28,10 +31,14 @@ void setup()
   CheckBox quads = controlP5.addCheckBox("quads", 3, 75);
   quads.addItem("show quads", 0);
   
-  controlP5.addSlider("gravity",   0.0, 10.0, 1.0, 3, 100, 200, 20);
-  controlP5.addSlider("threshold", 0.0, 20.0, 0.5, 3, 125, 200, 20);
-  controlP5.addButton("clear", 0, 3, 150, 35, 20);
-  controlP5.addButton("startstop", 0, 3, 175, 55, 20);
+  CheckBox spin = controlP5.addCheckBox("initialSpin", 3, 100);
+  spin.addItem("initial spin", 0);
+  
+  controlP5.addSlider("gravity",   0.0, 10.0, 1.0, 3, 125, 200, 20);
+  controlP5.addSlider("threshold", 0.0, 20.0, 0.5, 3, 150, 200, 20);
+  controlP5.addSlider("brightness", 0.0, 5.0, 1.0,  3, 175, 200, 20);
+  controlP5.addButton("clear", 0, 3, 200, 35, 20);
+  controlP5.addButton("startstop", 0, 3, 225, 55, 20);
 
   size(1680, 900);
   noStroke();
@@ -40,8 +47,8 @@ void setup()
   addParticles(
     num, // how many
     new PVector(840, 450), // where
-    10, // spread
-    10 // tangential velocity
+    size/2, // spread
+    0 // tangential velocity
   );
 }
 
@@ -49,10 +56,10 @@ void mouseClicked()
 {
   if (mouseEvent.getClickCount() == 2)
     addParticles(
-      10000, // how many
+      1000, // how many
       new PVector(mouseX, mouseY), // where
-      10, // spread
-      10 // tangential velocity
+      80,   // spread
+      initialSpin ? 2 : 0     // tangential velocity
     );
 }
 
@@ -81,14 +88,17 @@ void drawFast()
   for (Particle p : particles)
   {
     // insert the particle into the quad tree
+    if (!root.contains(p))
+      continue;
+
     root.insert(p);
 
     // draw the particle
     float mag = p.itsVel.mag();
     set((int)p.itsPos.x, (int)p.itsPos.y, color(
-          mag/maxSpeed*p.itsColor[0],
-          mag/maxSpeed*p.itsColor[1],
-          mag/maxSpeed*p.itsColor[2])
+          this.brightness*mag/maxSpeed*p.itsColor[0],
+          this.brightness*mag/maxSpeed*p.itsColor[1],
+          this.brightness*mag/maxSpeed*p.itsColor[2])
        );
   }
 
@@ -101,17 +111,17 @@ void drawFast()
 
   if (running)
   {
-    new UpdateThread(root, particles, 0*particles.size()/5, 1*particles.size()/5).start();
+    /*new UpdateThread(root, particles, 0*particles.size()/5, 1*particles.size()/5).start();
     new UpdateThread(root, particles, 1*particles.size()/5, 2*particles.size()/5).start();
     new UpdateThread(root, particles, 2*particles.size()/5, 3*particles.size()/5).start();
     new UpdateThread(root, particles, 3*particles.size()/5, 4*particles.size()/5).start();
-    new UpdateThread(root, particles, 4*particles.size()/5, 5*particles.size()/5).start();
+    new UpdateThread(root, particles, 4*particles.size()/5, 5*particles.size()/5).start(); */
 
-    /*for (Particle p : particles)
+    for (Particle p : particles)
     {
       root.updateForces(p);
       p.move();
-    }*/
+    }
   }
 }
 
@@ -169,7 +179,7 @@ void addParticles(int howMany, PVector where, float spread, float tangentialVelo
     displace.mult(random(0, spread));
     position.add(displace);
 
-    particles.add(new Particle(mass, rand, position, velocity));
+    particles.add(new Particle(random(-1, 2), rand, position, velocity));
   }
 }
 
@@ -181,7 +191,10 @@ void addParticles(int howMany, PVector where, float spread, float tangentialVelo
 public void controlEvent(ControlEvent event)
 {
   if (event.isGroup())
-    showQuads = (event.group().arrayValue()[0] == 1.0);
+    if (event.getName().equals("quads"))
+      showQuads = (event.group().arrayValue()[0] == 1.0);
+    else if (event.getName().equals("initialSpin"))
+      initialSpin = (event.group().arrayValue()[0] == 1.0);
 }
 
 public void clear(int value)
@@ -209,4 +222,7 @@ public void threshold(float value)
   this.threshold = value;
 }
 
-
+public void brightness(float value)
+{
+  this.brightness = value;
+}
